@@ -1,0 +1,92 @@
+{
+  "local": {
+    "milestone": "Groth16 verifier compatibility",
+    "environment": "local in-memory EVM only",
+    "configuredChainId": 46630,
+    "upstreamCommit": "36bcf5ed7cf94bfafb6e1a303e1832c769c16780",
+    "compiler": "0.8.17+commit.8df45f5f.Emscripten.clang",
+    "sourceLicense": "UNLICENSED",
+    "sourceHashes": {
+      "contracts/logic/Globals.sol": "f5bbef2024f85f6d59cfe8218ab4fa1d5925ed75873c36ba43ab2e5821862d45",
+      "contracts/logic/Snark.sol": "0039542b9dd901e383674a95df72cdc2dab3a7fdf7ee15274a6ba604201f4588",
+      "contracts/teststubs/logic/SnarkStub.sol": "61465de910a0e81df4c010370274c5093c3b6d11f335c82feaf340afe299acf3",
+      "test/logic/snark.ts": "a240b38882da84af6eac1d845a0a5abb49d2090e5aece119a37013c6bd4b4325"
+    },
+    "runtimeBytes": 3101,
+    "validProofGasEstimate": "236627",
+    "checks": [
+      {
+        "name": "BN254 addition",
+        "passed": true
+      },
+      {
+        "name": "BN254 scalar multiplication",
+        "passed": true
+      },
+      {
+        "name": "BN254 pairing identity",
+        "passed": true
+      },
+      {
+        "name": "BN254 non-identity pairing rejected",
+        "passed": true
+      },
+      {
+        "name": "Pinned Groth16 valid-proof fixture accepted",
+        "passed": true
+      },
+      {
+        "name": "Pinned Groth16 invalid-proof fixture rejected",
+        "passed": true
+      },
+      {
+        "name": "Changed public input rejected",
+        "passed": true
+      },
+      {
+        "name": "Out-of-field public input rejected",
+        "passed": true
+      },
+      {
+        "name": "Malformed proof point rejected",
+        "passed": true
+      },
+      {
+        "name": "Point-at-infinity handling preserved",
+        "passed": true
+      }
+    ],
+    "passed": true,
+    "generatedNewProof": false,
+    "testnetDeployment": false,
+    "shieldedWalletImplemented": false
+  },
+  "testnet": {
+    "milestone": "Robinhood testnet read-only precompile probe",
+    "provider": "documented public RPC",
+    "transactionsSent": 0,
+    "testnetDeployment": false,
+    "status": "completed",
+    "chainId": 46630,
+    "block": "0x829452d",
+    "checks": [
+      {
+        "name": "BN254 addition",
+        "passed": true
+      },
+      {
+        "name": "BN254 scalar multiplication",
+        "passed": true
+      },
+      {
+        "name": "BN254 pairing identity",
+        "passed": true
+      },
+      {
+        "name": "BN254 non-identity pairing rejected",
+        "passed": true
+      }
+    ],
+    "passed": true
+  }
+}

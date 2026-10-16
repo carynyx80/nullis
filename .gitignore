@@ -1,5 +1,9 @@
 /research/npm-cache/
 /research/private-usernames/node_modules/
+/research/shielded-evm/node_modules/
+/research/railgun-upstream/
+/research/shielded-evm/local-results.json
+/research/shielded-evm/testnet-results.json
 /node_modules/
 *.log
 /.local/
