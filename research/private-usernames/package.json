@@ -1,0 +1,9 @@
+{
+  "name": "nullis-private-usernames-research",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {"test": "node --test prototype.test.mjs", "demo": "node demo.mjs"},
+  "dependencies": {
+    "@cloudflare/voprf-ts": "1.0.0"
+  }
+}

@@ -1,0 +1,13 @@
+(function(root){'use strict';
+const CONTEXT='NULLIS_USERNAME_REGISTRATION_V1';
+const bytes=s=>new TextEncoder().encode(s);
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+function decode(s,max=512){if(typeof s!=='string'||s.length>max||!/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(s))throw Error('Invalid key encoding');return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
+function normalize(value){if(typeof value!=='string')throw Error('Enter a username.');const name=value.trim().replace(/^@/,'');if(!/^[A-Za-z0-9_]{3,20}$/.test(name))throw Error('Use 3–20 letters, numbers or underscores.');if(['nullis','admin','administrator','support','security','official','system','moderator','team','help','deposit','withdraw','swap'].includes(name.toLowerCase()))throw Error('This username is reserved.');return name}
+async function tag(name){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes(CONTEXT+':case-sensitive:'+normalize(name))))).map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function createKey(){const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);return {privateKey:b64(await crypto.subtle.exportKey('pkcs8',pair.privateKey)),publicKey:b64(await crypto.subtle.exportKey('raw',pair.publicKey))}}
+function message(domain,challenge){if(typeof domain!=='string'||domain.length>200||!/^https?:\/\//.test(domain)||!/^[0-9a-f]{64}$/.test(challenge.tag)||!/^[0-9a-f]{64}$/.test(challenge.nonce)||!Number.isSafeInteger(challenge.expires)||decode(challenge.owner).length!==65)throw Error('Invalid ownership challenge');return bytes(JSON.stringify({context:CONTEXT,action:'register',domain,tag:challenge.tag,owner:challenge.owner,nonce:challenge.nonce,expires:challenge.expires}))}
+async function signClaim(key,domain,challenge){if(challenge.owner!==key.publicKey)throw Error('Ownership key mismatch');const privateKey=await crypto.subtle.importKey('pkcs8',decode(key.privateKey),{name:'ECDSA',namedCurve:'P-256'},false,['sign']);return b64(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},privateKey,message(domain,challenge)))}
+async function verifyClaim(domain,challenge,signature){try{const owner=await crypto.subtle.importKey('raw',decode(challenge.owner),{name:'ECDSA',namedCurve:'P-256'},false,['verify']);const sig=decode(signature,128);return sig.length===64&&await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},owner,sig,message(domain,challenge))}catch{return false}}
+const api={normalize,tag,createKey,signClaim,verifyClaim,message,decode};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.NullisRegistryCore=api;
+})(globalThis);

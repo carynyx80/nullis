@@ -1,0 +1,6 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),U=require('./dist/usernames');
+test('case is preserved and the display prefix does not change identity',()=>{assert.equal(U.normalize('Alice'),'Alice');assert.equal(U.normalize(' @ALICE '),'ALICE');assert.notEqual(U.normalize('Alice'),U.normalize('alice'));assert.equal(U.normalize('@Alice'),U.normalize('Alice'))});
+test('rejects Unicode lookalikes, zero-width characters and mixed scripts',()=>{for(const name of ['аlice','ali\u200bce','Ａlice','alíce','alice😀'])assert.throws(()=>U.normalize(name))});
+test('rejects query/path separators, whitespace and repeated at signs',()=>{for(const name of ['ali ce','alice/bob','alice?admin','@@alice','alice\nbob','alice.bob','alice%00'])assert.throws(()=>U.normalize(name))});
+test('rejects system identities case-insensitively',()=>{for(const name of ['@NULLIS','Admin','SUPPORT','security'])assert.throws(()=>U.normalize(name),/reserved/)});
+test('accepts boundary lengths and rejects out-of-range input',()=>{assert.equal(U.normalize('a_b'),'a_b');assert.equal(U.normalize('a'.repeat(20)),'a'.repeat(20));for(const name of ['ab','a'.repeat(21),'',null,{},42])assert.throws(()=>U.normalize(name))});

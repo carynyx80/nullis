@@ -1,0 +1,21 @@
+{
+  "name": "nullis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NULLIS interface, read-only wallet integration, and encrypted local profiles. Financial privacy protocol not deployed.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node --test registry-api.test.mjs usernames.test.cjs wallet.test.cjs wallet-ui.test.cjs vault.test.cjs",
+    "build": "node scripts/build-registry.mjs",
+    "build:vercel": "node scripts/build-vercel.mjs",
+    "db:generate": "node scripts/generate-schema.cjs generate --config drizzle.config.ts",
+    "check": "node --check dist/wallet-core.js && node --check dist/wallet-app.js && node --check dist/profile.js && node --check dist/vault.js && node --check dist/vault-ui.js"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "drizzle-orm": "0.45.2"
+  }
+}

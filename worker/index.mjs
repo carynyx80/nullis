@@ -1,0 +1,3 @@
+import {handleRegistry} from '../registry/handler.mjs';
+const assets=/*__ASSETS__*/{};
+export default {async fetch(request,env){const response=await handleRegistry(request,env);if(response)return response;const url=new URL(request.url);if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Not found',{status:404});const asset=assets[url.pathname==='/'?'/index.html':url.pathname];if(!asset)return new Response('Not found',{status:404});const data=Uint8Array.from(atob(asset.body),c=>c.charCodeAt(0));return new Response(request.method==='HEAD'?null:data,{headers:{'Content-Type':asset.type,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()'}})}};

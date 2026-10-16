@@ -1,0 +1,10 @@
+/research/npm-cache/
+/research/private-usernames/node_modules/
+/node_modules/
+*.log
+/.local/
+/public/
+/.vercel/
+.env
+.env.*
+!.env.example
