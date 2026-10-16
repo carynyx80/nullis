@@ -1,0 +1,4 @@
+import {existsSync,readFileSync} from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {execFileSync} from 'node:child_process';
+const root=path.dirname(fileURLToPath(import.meta.url)),pin=JSON.parse(readFileSync(path.join(root,'upstream.json'),'utf8')),destination=path.resolve(root,'../railgun-upstream');
+if(!existsSync(destination)){execFileSync('git',['clone','--no-checkout',pin.repository,destination],{stdio:'inherit'});execFileSync('git',['checkout','--detach',pin.commit],{cwd:destination,stdio:'inherit'})}
+const head=execFileSync('git',['rev-parse','HEAD'],{cwd:destination,encoding:'utf8'}).trim();if(head!==pin.commit)throw Error('Existing upstream checkout has another commit. Preserve it and select the pinned reference manually.');console.log('Pinned reference checkout is ready for local inspection. No source was copied into the application.');
