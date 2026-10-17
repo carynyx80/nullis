@@ -23,13 +23,13 @@
     "mainnetTransactionsSent": 0
   },
   "mainnetFork": {
-    "checkedAt": "2026-10-17T07:23:50.435Z",
+    "checkedAt": "2026-10-17T08:00:10.652Z",
     "mode": "local fork using mainnet token and Uniswap deployments",
     "chainId": 4663,
     "block": {
-      "number": 90748400,
-      "hash": "0xf8028d899cb5c37ad22adfe376f1a4061d6d27b97495ec0fb359135f9fa18855",
-      "timestamp": 1792221824
+      "number": 90769519,
+      "hash": "0xfa11ddf9256a02911f3fe7291823228a8d6fa9d43e4e7cfd138955de37904dbc",
+      "timestamp": 1792223999
     },
     "sourceSha256": "70fcdf238c4e550a21a80ea782d56110b20162dfc1c3e9e553f267a57d05b1f1",
     "mainnetTransactionsSent": 0,
@@ -37,6 +37,7 @@
     "private": false,
     "passed": true,
     "checks": [
+      "Verified deterministic deployment uses an explicit recipient and repeated setup reuses the contract without another wallet transaction",
       "Deployed runtime matches the compiled account after immutable masking",
       "Native deposit credits only the depositor; another wallet cannot withdraw it",
       "Mainnet Uniswap router swaps deposited ETH to USDG; failed minimum output preserves the original balance",
@@ -47,28 +48,27 @@
       "Router token allowances are zero after swaps",
       "The browser transaction controller performs deployment, exact approvals, deposits, quotes, swaps and withdrawals with simulation, gas estimation and confirmed receipts"
     ],
-    "swapGas": "210020",
-    "deploymentGas": "1177244",
+    "swapGas": "210016",
+    "deploymentGas": "1180072",
+    "deploymentReused": false,
     "amountInWei": "1000000000000000",
-    "usdReceivedBaseUnits": "2429743",
+    "usdReceivedBaseUnits": "2431102",
     "usdDecimals": 6,
     "fee": 100
   },
-  "browserControllerTests": 16,
+  "browserControllerTests": 18,
   "existingAppTests": 35,
   "mainnetDeployment": null,
   "independentlyAudited": false,
   "liveDeploymentSimulation": {
-    "checkedAt": "2026-10-17T07:39:55.214Z",
+    "checkedAt": "2026-10-17T08:00:14.173Z",
     "chainId": 4663,
     "sourceSha256": "70fcdf238c4e550a21a80ea782d56110b20162dfc1c3e9e553f267a57d05b1f1",
-    "mainnetCreationSimulation": true,
-    "estimatedGas": "1192417",
-    "bufferedGas": "1430901",
-    "gasPriceWei": "20114000",
-    "bufferedEstimatedETH": "0.000028781142714",
-    "walletCanCoverCurrentEstimate": true,
-    "transactionsSent": 0,
-    "notAFeeGuarantee": true
+    "method": "deterministic factory call",
+    "recipient": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+    "predictedAccount": "0x3b078b9Ce9a6f935667cfC95bb4536C3d8aa4417",
+    "simulationPassed": true,
+    "estimatedGas": "1203006",
+    "transactionsSent": 0
   }
 }

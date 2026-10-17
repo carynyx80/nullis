@@ -54,6 +54,15 @@ Source and tests depend on OpenZeppelin 5.1.0 (MIT). No private key is embedded.
 
 ## Mainnet deployment — wallet signature required
 
+Deployment uses the established deterministic factory at
+`0x4e59b44847b379578588920ca78fbf26c0b4956c`. Its runtime is checked against the
+[reference implementation](https://github.com/Arachnid/deterministic-deployment-proxy).
+The wallet receives an ordinary transaction with an explicit recipient, zero
+value and chain ID, avoiding a recipient-less contract-creation request. Salt and
+initialization bytecode determine the shared account address; repeating setup
+reuses an already verified contract without another deployment. This deployment
+factory does not make the resulting account upgradeable or give it an administrator.
+
 1. Open the deployed site in a browser with an EVM wallet extension, or a wallet
    dapp browser. The Codex sidebar does not have an injected wallet.
 2. Connect the deployment wallet and switch to Robinhood Chain (4663).
@@ -69,7 +78,7 @@ node account/verify-deployment.mjs CONTRACT_ADDRESS DEPLOYMENT_TRANSACTION_HASH
 node account/prepare-web.mjs
 ```
 
-The verification command checks chain, creation transaction input/arguments,
+The verification command checks chain, direct/factory creation input/arguments,
 successful receipt, block hash, runtime and immutable token/router settings. It
 produces `deployment.json`; rebuilding then sets the verified shared contract as
 the default for new visitors. Until that record exists the UI offers deployment

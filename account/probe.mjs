@@ -18,9 +18,10 @@ export async function probe() {
  const block=await rpc('eth_blockNumber'),header=await rpc('eth_getBlockByNumber',[block,false]);
  if(Math.abs(Date.now()/1000-Number(BigInt(header.timestamp)))>600)throw Error('Stale mainnet RPC');
  const hashes={};
- for(const name of ['weth','usd','router','factory','quoter']) {
+ for(const name of ['weth','usd','router','factory','quoter','deployer']) {
   const code=await rpc('eth_getCode',[n[name],block]);if(code==='0x')throw Error('Missing contract: '+name);hashes[name]=keccak256(code);
  }
+ if(hashes.deployer!==n.deployerHash)throw Error('Deployment factory runtime differs from the reference');
  const iface=new Interface(ABI.router);
  for(const [fn,key] of [['WETH9','weth'],['factory','factory']]) {
   const result=iface.decodeFunctionResult(fn,await rpc('eth_call',[{to:n.router,data:iface.encodeFunctionData(fn)},block]))[0];

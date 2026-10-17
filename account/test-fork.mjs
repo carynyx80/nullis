@@ -20,11 +20,14 @@ try {
  const signer=await provider.getSigner(0),other=await provider.getSigner(1),owner=await signer.getAddress();
  stage='deploy public account';console.log(stage);
  const walletEvents=[];
- const client=new Account(local,{network:n,hashes:network.hashes,abi:artifact.abi,bytecode:'0x'+artifact.evm.bytecode.object,
-  runtimeHash:keccak256('0x'+artifact.evm.deployedBytecode.object),immutableReferences:Object.values(artifact.evm.deployedBytecode.immutableReferences).flat()},
+ const strictWallet={request:async request=>{if(['eth_call','eth_estimateGas','eth_sendTransaction'].includes(request.method)){const tx=request.params[0];assert.match(tx.to||'',/^0x[0-9a-f]{40}$/i,'Wallet requests need an explicit recipient');if(request.method==='eth_sendTransaction'){assert.match(tx.value||'',/^0x(?:0|[1-9a-f][0-9a-f]*)$/i);assert.equal(tx.chainId,'0x1237')}}return local.request(request)}};
+ const client=new Account(strictWallet,{network:n,hashes:network.hashes,abi:artifact.abi,bytecode:'0x'+artifact.evm.bytecode.object,
+  sourceSha256:artifact.sourceSha256,runtimeHash:keccak256('0x'+artifact.evm.deployedBytecode.object),immutableReferences:Object.values(artifact.evm.deployedBytecode.immutableReferences).flat()},
   {pending:event=>walletEvents.push(event)});
  const deployment=await client.deploy();
  const account=new Contract(deployment.address,artifact.abi,signer);
+ const requestsBeforeReuse=walletEvents.length,reuse=await client.deploy();assert.equal(reuse.reused,true);assert.equal(reuse.address,account.target);assert.equal(walletEvents.length,requestsBeforeReuse);
+ checks.push('Verified deterministic deployment uses an explicit recipient and repeated setup reuses the contract without another wallet transaction');
  const deployed=await provider.getCode(account.target);let masked=deployed.slice(2);
  for(const {start,length} of Object.values(artifact.evm.deployedBytecode.immutableReferences).flat())masked=masked.slice(0,start*2)+'0'.repeat(length*2)+masked.slice((start+length)*2);
  assert.equal(keccak256('0x'+masked),keccak256('0x'+artifact.evm.deployedBytecode.object));
@@ -77,7 +80,7 @@ try {
  assert.ok(walletEvents.some(e=>e.label==='Approve exact deposit amount'&&e.status==='confirmed'));
  assert.ok(walletEvents.filter(e=>e.status==='pending').every(p=>walletEvents.some(e=>e.hash===p.hash&&e.status==='confirmed')));
  checks.push('The browser transaction controller performs deployment, exact approvals, deposits, quotes, swaps and withdrawals with simulation, gas estimation and confirmed receipts');
- Object.assign(report,{passed:true,checks,swapGas:BigInt(swapReceipt.gasUsed).toString(),deploymentGas:BigInt(deployment.receipt.gasUsed).toString(),
+ Object.assign(report,{passed:true,checks,swapGas:BigInt(swapReceipt.gasUsed).toString(),deploymentGas:deployment.receipt?BigInt(deployment.receipt.gasUsed).toString():null,deploymentReused:!!deployment.reused,
   amountInWei:input.toString(),usdReceivedBaseUnits:credited.toString(),usdDecimals:6,fee:best.fee});
 }catch(error){report.passed=false;report.failedStage=stage;report.failure=String(error?.info?.error?.message||error?.shortMessage||error?.message||'Fork failure').replace(/https?:\/\/[^\s"']+/g,'[RPC]').slice(0,350);}
 finally{writeFileSync(resolve(accountRoot,'artifacts/fork.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));await provider.destroy();await local.disconnect();}
