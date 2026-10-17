@@ -7,6 +7,7 @@ import {Groth16Verifier} from "./LocalVerifier.sol";
 contract TestAsset is ERC20 {
     bool public fee;
     bool public returnsFalse;
+    bool public payoutReturnsFalse;
     address public callbackTarget;
     bytes public callbackData;
     bool public callbackSucceeded;
@@ -15,15 +16,24 @@ contract TestAsset is ERC20 {
     function decimals() public pure override returns (uint8) { return 6; }
     function setFee(bool value) external { fee = value; }
     function setReturnsFalse(bool value) external { returnsFalse = value; }
+    function setPayoutReturnsFalse(bool value) external { payoutReturnsFalse = value; }
     function setCallback(address target, bytes calldata data) external { callbackTarget = target; callbackData = data; }
     function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         if (returnsFalse) return false;
+        attemptCallback();
+        return super.transferFrom(from, to, amount);
+    }
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        if (payoutReturnsFalse) return false;
+        attemptCallback();
+        return super.transfer(to, amount);
+    }
+    function attemptCallback() internal {
         if (callbackTarget != address(0)) {
             bytes memory result;
             (callbackSucceeded, result) = callbackTarget.call(callbackData);
             if (!callbackSucceeded && result.length >= 4) callbackFailure = bytes4(result);
         }
-        return super.transferFrom(from, to, amount);
     }
     function _update(address from, address to, uint256 value) internal override {
         if (fee && from != address(0) && to != address(0) && value > 0) {

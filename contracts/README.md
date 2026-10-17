@@ -1,8 +1,8 @@
 # NULLIS contract adaptation — local development only
 
-This is the first contract implementation stage. It is not a mainnet deposit
-product. There is no mainnet deployment script, approved production proving key,
-working withdrawal flow, or frontend financial integration here.
+This is a local deposit/withdrawal contract prototype. It is not a mainnet
+deposit product. There is no mainnet deployment script, approved production
+proving key, or frontend financial integration here.
 
 ## Implemented
 
@@ -15,14 +15,16 @@ working withdrawal flow, or frontend financial integration here.
   amount. The ERC20 balance increase must equal the deposit amount; a short
   transfer reverts all note and token effects.
 - Unused lock/delegation routes are disabled to keep scope and runtime size down.
-- Withdrawals fail closed with `WithdrawalProofBindingRequired`. The inspected
-  upstream withdrawal statement does not bind a payout recipient. It must be
-  adapted and verified before withdrawals can be enabled.
+- Withdrawals use a new eight-signal, 64-level circuit and pay the recipient
+  committed by the proof. Payouts must debit and credit exactly the authorized
+  amount. Nullifiers and change notes roll back if the payout fails.
 
-The inherited encrypted-transfer machinery is not end-to-end tested here and
-must not be described as working private transfers. Tests configure rejecting
-transfer and withdrawal verifiers. They use a real, newly generated **local-only**
-deposit proof and test ERC20 assets, not a permissive deposit verifier.
+The inherited private-transfer entry point always reverts until a separately
+reviewed transfer construction is ready. This is enforced by code, independently
+of any verifier configuration. A full protocol release will need that construction
+before its immutable contracts are deployed. Deposit and withdrawal tests use actual newly generated
+**local-only** Groth16 proofs and test ERC20 assets, not permissive verifiers.
+See `WITHDRAWAL.md` for the exact statement and remaining review requirements.
 
 ## Build and test
 
@@ -34,16 +36,22 @@ npm run bootstrap
 npm run build
 ```
 
-Generate the isolated test proving artifacts using `../research/zeto-prover/`
-(see its README), then run `npm test` here. All transactions use an in-memory
+Generate both deposit and withdrawal test proving artifacts using
+`../research/zeto-prover/` (see its README), then run `npm test` here. All transactions use an in-memory
 Ganache provider with chain 31337; no deployment key or RPC URL is read.
 Ganache's optional native networking module may fall back to JavaScript.
 
 Tests enforce normal EIP-170 contract-size limits and exercise initialization,
 permission removal, actual deposit-proof verification, duplicate commitments,
 fee-on-transfer rejection, failed-token-transfer rollback, retry, reentrancy,
-and direct note-store access. They do not validate withdrawal/transfer proofs,
-full economic invariants, privacy, recovery, or production ceremony provenance.
+and direct note-store access. The withdrawal suite covers partial and full
+withdrawals, a single active input, redirect/replay attempts, cross-pool/network
+binding, short/failed payouts, reentrancy and canonical-key/unused-input checks.
+These checks are not a full economic audit, private-transfer validation,
+privacy assessment, recovery test or production ceremony review.
+
+Compilation caching compares source, dependency, compiler and adaptation hashes.
+It never enables unlimited contract size or substitutes accepting mock verifiers.
 
 ## Source adaptations and licensing
 
@@ -68,8 +76,9 @@ Vercel application and must not be adopted unchanged for a production service.
 
 ## Before real funds
 
-Finish and independently review recipient-bound withdrawals, transfer proofs,
-encrypted note discovery, spending-key recovery, and conservation/replay tests.
+Independently review the new withdrawal statement and its contract integration.
+Finish transfer proofs, encrypted note discovery, spending-key recovery, and
+broader conservation/replay testing.
 Verify production trusted-setup provenance and deployment artifacts. Only then
 prepare a mainnet transaction bundle and enable financial UI actions. Arbitrary
 malicious, rebasing, fee-taking or issuer-restricted tokens are not automatically

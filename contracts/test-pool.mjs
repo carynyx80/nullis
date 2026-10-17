@@ -5,15 +5,25 @@ import solc from 'solc';
 import ganache from 'ganache';
 import {BrowserProvider, ContractFactory, Contract, AbiCoder, ZeroAddress, keccak256, id} from 'ethers';
 import {poseidonContract} from 'circomlibjs';
-import {compile, root} from './compile.mjs';
+import {compileCached, root} from './compile.mjs';
+import {testWithdrawals} from './withdrawal-test.mjs';
+import {createHash} from 'node:crypto';
 
 console.log('Compiling adapted contracts and local test verifier');
 const prover = resolve(root, '../research/zeto-prover/artifacts');
 const validation = JSON.parse(readFileSync(resolve(prover, 'results.json')));
 assert.equal(validation.passed, true); assert.equal(validation.productionSetup, false);
-const output = compile({
+const withdrawalSetup = JSON.parse(readFileSync(resolve(prover, 'withdrawal-setup.json')));
+const hashFile = path => createHash('sha256').update(readFileSync(path)).digest('hex');
+assert.equal(withdrawalSetup.productionSetup,false);
+assert.equal(withdrawalSetup.circuitHash,hashFile(resolve(prover,'withdrawal.r1cs')));
+assert.equal(withdrawalSetup.keyHash,hashFile(resolve(prover,'UNSAFE-WITHDRAWAL-LOCAL-ONLY.zkey')));
+assert.equal(withdrawalSetup.wrapperHash,hashFile(resolve(root,'../research/zeto-prover/circuits/withdrawal.circom')));
+assert.equal(withdrawalSetup.wasmHash,hashFile(resolve(prover,'withdrawal_js/withdrawal.wasm')));
+const output = compileCached({
   'test/Fixtures.sol': {content: readFileSync(resolve(root, 'test/Fixtures.sol'), 'utf8')},
-  'test/LocalVerifier.sol': {content: readFileSync(resolve(prover, 'LocalVerifier.sol'), 'utf8')}
+  'test/LocalVerifier.sol': {content: readFileSync(resolve(prover, 'LocalVerifier.sol'), 'utf8')},
+  'test/WithdrawalVerifier.sol': {content: readFileSync(resolve(prover, 'WithdrawalVerifier.sol'), 'utf8')}
 });
 mkdirSync(resolve(root, 'artifacts'), {recursive: true});
 writeFileSync(resolve(root, 'artifacts/compiled.json'), JSON.stringify(output));
@@ -68,9 +78,11 @@ try {
   assert.equal(Number((await provider.getNetwork()).chainId), 31337);
   const generated = await deploy('test/LocalVerifier.sol', 'Groth16Verifier');
   const adapter = await deploy('test/Fixtures.sol', 'DepositVerifierAdapter', [await generated.getAddress()]);
+  const withdrawalGenerated = await deploy('test/WithdrawalVerifier.sol', 'Groth16Verifier');
+  const withdrawalAdapter = await deploy('src/WithdrawalVerifierAdapter.sol','WithdrawalVerifierAdapter',[await withdrawalGenerated.getAddress()]);
   const rejecting = await deploy('test/Fixtures.sol', 'RejectVerifier');
   const rejectAddress = await rejecting.getAddress();
-  const verifiers = [rejectAddress, await adapter.getAddress(), rejectAddress, rejectAddress, rejectAddress, rejectAddress, rejectAddress, rejectAddress, rejectAddress];
+  const verifiers = [rejectAddress, await adapter.getAddress(), await withdrawalAdapter.getAddress(), rejectAddress, rejectAddress, rejectAddress, rejectAddress, rejectAddress, rejectAddress];
   const configuration = keccak256(coder.encode([tuple], [verifiers]));
   async function makePool(asset) {
     const implementation = await deploy('src/NullisPool.sol', 'NullisPool', [await asset.getAddress(), configuration]);
@@ -84,6 +96,8 @@ try {
   checks.push('atomic initialization binds asset and verifier configuration, preserves asset decimals, and leaves no owner');
   for (const actor of [signer, attacker]) await reject(() => pool.connect(actor).mint.staticCall([123n], '0x'), 'UnbackedMintDisabled', pool.interface);
   checks.push('deployer and attacker cannot mint unbacked notes');
+  await reject(()=>pool.transfer.staticCall([0,0],[0,0],'0x','0x'),'PrivateTransfersUnavailable',pool.interface);
+  checks.push('unreviewed legacy private-transfer entry point is disabled independently of verifier configuration');
   await reject(() => pool.initialize.staticCall('bad', 'BAD', ZeroAddress, verifiers), 'InvalidInitialization', pool.interface);
   await reject(() => implementation.initialize.staticCall('bad', 'BAD', ZeroAddress, verifiers), 'InvalidInitialization', pool.interface);
   checks.push('proxy cannot reinitialize and implementation is locked');
@@ -92,8 +106,8 @@ try {
   await reject(() => pool.setERC20.staticCall(asset.target), 'OwnableUnauthorizedAccount', pool.interface);
   checks.push('upgrade, ownership takeover and backing-token replacement fail');
   await reject(() => pool.createLock.staticCall('0x', '0x' + '00'.repeat(32), '0x' + '00'.repeat(32), '0x'), 'NullisLockingDisabled', pool.interface);
-  await reject(() => pool.withdraw.staticCall(amount, [1, 2], 3, '0x', '0x'), 'WithdrawalProofBindingRequired', pool.interface);
-  checks.push('unused lock routes and recipient-unbound withdrawals fail closed');
+  await reject(() => pool.withdraw.staticCall(amount, [0, 0], 0, '0x', '0x'), 'InvalidWithdrawalShape', pool.interface);
+  checks.push('unused lock routes and empty withdrawal inputs fail closed');
   await (await asset.approve(address, amount)).wait();
   await reject(() => pool.deposit.staticCall(amount, [...commitments, 999n], encodedProof, '0x'), 'InvalidDepositShape', pool.interface);
   await reject(() => pool.deposit.staticCall(0, commitments, encodedProof, '0x'), 'InvalidDepositShape', pool.interface);
@@ -129,8 +143,9 @@ try {
   assert.equal(await feeAsset.callbackFailure(), id('ReentrancyGuardReentrantCall()').slice(0, 10));
   assert.equal(await feeAsset.balanceOf(feePool.target), amount);
   checks.push('failed ERC20 transfer rolls back notes; the same proof can be retried, and a reentrant deposit is rejected');
+  const withdrawal = await testWithdrawals({root,prover,pool,feePool,asset,signer,attacker,provider,store,reject,generated:withdrawalGenerated,checks});
   const report = {checkedAt: new Date().toISOString(), compiler: solc.version(), runtimeBytes, maximumRuntimeBytes: 24576,
-    checks, passed: true, localOnly: true, testAssetOnly: true, realDepositProof: true, withdrawalImplemented: false,
+    checks, passed: true, localOnly: true, testAssetOnly: true, realDepositProof: true, withdrawalImplemented: true, withdrawalProofTested: true,withdrawal,
     transferProofTested: false, mainnetDeployment: false, sourceProvenance: output.nullis};
   writeFileSync(resolve(root, 'artifacts/validation.json'), JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({...report, sourceProvenance: undefined}, null, 2));
