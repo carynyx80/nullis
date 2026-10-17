@@ -1,0 +1,36 @@
+{
+  "local": {
+    "checkedAt": "2026-10-17T00:26:19.137Z",
+    "upstreamCommit": "dd495492f540c5f71988d15f8d3eb2b0d93c5099",
+    "sourceLicense": "Apache-2.0",
+    "compilerVersion": "circom compiler 2.2.2",
+    "wasmSha256": "0439896cf5cb15ce955a16519f3ab88af3be520be5e47fe3273504e7ee247bfa",
+    "ptauBlake2b512": "2cb6f9c4d8df98947666a8c2f5965f1566b0eb2366f66b52b5f0414ff398e23b3639855ec4ca6c38b828b7fe31ba4a98803afff76ee8ab7ee223e4a98d55a9fe",
+    "r1csSha256": "fc0f3b18f6469bb526a0e959eee6865153cc599b68d24cfccc37aa12e7295170",
+    "checks": [
+      "fresh deposit proof verified",
+      "public amount and commitments matched",
+      "changed public amount rejected",
+      "changed public commitment rejected",
+      "mismatched commitment rejected"
+    ],
+    "passed": true,
+    "localOnly": true,
+    "productionSetup": false,
+    "contractsDeployed": false,
+    "transactionsSent": 0
+  },
+  "mainnet": {
+    "checkedAt": "2026-10-17T00:27:03.499Z",
+    "mode": "mainnet eth_call with ephemeral code override",
+    "transactionsSent": 0,
+    "contractsDeployed": false,
+    "productionSetup": false,
+    "verifierRuntimeSha256": "2d56d82868e253420080fd6e5f12496f5e88d6b12eccf31fb785da7fe3ae776d",
+    "chainId": 4663,
+    "block": "0x564ff8d",
+    "freshProofAccepted": true,
+    "alteredAmountRejected": true,
+    "passed": true
+  }
+}

@@ -36,8 +36,6 @@ Ganache may report a native networking module mismatch and use its JavaScript fa
 
 The testnet report does not assert that a RAILGUN deployment exists, that the entire verifier has executed on testnet, or that an SDK/indexer/relayer/prover is compatible. It sends no signed transaction and uses no deployment wallet or private key.
 
-## Remaining work
-
 ## Mainnet arithmetic probe
 
 Run `node --test probe-mainnet.test.mjs` and `node probe-mainnet.mjs`.
