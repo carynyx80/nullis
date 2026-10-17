@@ -7,7 +7,7 @@ function render(){
   avatar.replaceChildren();const image=document.createElement('img');
   image.src=profile?.photo||'nullis-logo.png';image.alt=profile?.photo?'Your profile picture':'';
   image.className=profile?.photo?'profile-photo':'supplied-logo';avatar.append(image,node('span'));
-  $('#username').textContent=profile?.username?'@'+profile.username:'Your NULLIS profile';
+  $('#username').textContent=profile?.username?'@'+profile.username:'Your NULLISPAD profile';
   $('#edit-name').textContent=profile?'Edit profile':'Set up profile';$('#edit-name').disabled=!state.address;
   if(profile) $('.identity p').textContent='Profile draft · '+(onChain()?'Robinhood Chain':'Switch network');
   if($('#modal').open&&mode==='profile'){

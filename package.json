@@ -1,8 +1,8 @@
 {
-  "name": "nullis",
+  "name": "nullispad",
   "version": "0.1.0",
   "private": true,
-  "description": "NULLIS interface, read-only wallet integration, and encrypted local profiles. Financial privacy protocol not deployed.",
+  "description": "NULLISPAD interface, read-only wallet integration, and encrypted local profiles. Financial privacy protocol not deployed.",
   "engines": {
     "node": ">=22"
   },
