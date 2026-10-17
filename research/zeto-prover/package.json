@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "bootstrap": "node bootstrap.mjs",
-    "test": "node prove-deposit.mjs"
+    "test": "node prove-deposit.mjs",
+    "setup:withdrawal": "node setup-withdrawal.mjs"
   },
   "dependencies": {
     "circom2": "0.2.23",

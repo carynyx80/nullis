@@ -48,6 +48,7 @@ run('snarkjs', ['zkey', 'contribute', initialKey, key, '-n=Local research only',
 run('snarkjs', ['zkey', 'verify', resolve(artifacts, 'deposit.r1cs'), ptau, key]);
 const vkey = resolve(artifacts, 'verification-key.json');
 run('snarkjs', ['zkey', 'export', 'verificationkey', key, vkey]);
+run('snarkjs', ['zkey', 'export', 'solidityverifier', key, resolve(artifacts, 'LocalVerifier.sol')]);
 const owner = [
   5299619240641551281634865583518297030282874472190772894086521144482721001553n,
   16950150798460657717958625567821834550301663161624707787222815936182638968203n

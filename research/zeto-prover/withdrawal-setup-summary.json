@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-17T06:38:38.776Z",
+  "circuitHash": "a414cde5832ee1c6a935fbe6a53bac0dd45b4cc1268f54f74da3842fb195c9e4",
+  "keyHash": "7926f9c103d9fa450013f4309b2133239b346b47ada29f51702161466d41c16a",
+  "phaseOneBlake2b512": "6247a3433948b35fbfae414fa5a9355bfb45f56efa7ab4929e669264a0258976741dfbe3288bfb49828e5df02c2e633df38d2245e30162ae7e3bcca5b8b49345",
+  "upstreamCommit": "dd495492f540c5f71988d15f8d3eb2b0d93c5099",
+  "merkleDepth": 64,
+  "localOnly": true,
+  "productionSetup": false,
+  "wrapperHash": "d27bd790d3527134c110d0efeb1da0381bbf1c12a4ceebc178b7ba9a797161ea",
+  "wasmHash": "38f20934c7bbd153d37de1455ec497b39d74a64538fe475848d78b458275e0ce"
+}

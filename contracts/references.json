@@ -1,0 +1,4 @@
+{
+  "zeto": {"repository": "https://github.com/LFDT-Paladin/zeto.git", "commit": "dd495492f540c5f71988d15f8d3eb2b0d93c5099", "directory": "zeto-upstream", "paths": ["solidity/contracts", "zkp/circuits"], "license": "Apache-2.0"},
+  "iden3": {"repository": "https://github.com/kaleido-io/contracts.git", "commit": "99df49220beefed176a1d4f8472ba1cf5f94e367", "directory": "iden3-upstream", "paths": ["contracts"], "license": "GPL-3.0"}
+}

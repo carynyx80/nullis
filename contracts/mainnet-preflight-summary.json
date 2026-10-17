@@ -1,0 +1,56 @@
+{
+  "checkedAt": "2026-10-17T06:59:40.026Z",
+  "chainId": 4663,
+  "mode": "read-only eth_call with ephemeral verifier code",
+  "transactionsSent": 0,
+  "contractsDeployed": false,
+  "productionReady": false,
+  "checks": [
+    "Local proof, circuit, verifier and pool artifacts match current sources",
+    "RPC reports Robinhood mainnet and a recent block",
+    "Candidate backing asset has code and readable ERC20 metadata (not a token safety approval)",
+    "Mainnet EVM accepts partial/full test proofs and rejects changes to all eight public signals"
+  ],
+  "blockers": [
+    "Both proof systems still use local test-only circuit setup; independent production setup verification is missing",
+    "Independent circuit and contract security review is missing",
+    "Client spending-key recovery, encrypted note discovery and financial transaction integration are incomplete",
+    "Supported asset transfer behavior and complete linked deployment artifacts need verification"
+  ],
+  "block": {
+    "number": "90734422",
+    "hash": "0x087a27bd6878a1e3c3d9a5c6c81a56e31dbf288c38aa01589c49350051aee0ce",
+    "timestamp": 1792220382
+  },
+  "asset": {
+    "address": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+    "symbol": "WETH",
+    "decimals": 18,
+    "totalSupply": "38699051953812996389145",
+    "runtimeKeccak256": "0x5706be52f64875fee65a2cec0d80e47a23d8793cbe85d214b48445e2d05f5353",
+    "issuerBehaviorReviewed": false
+  },
+  "gasLowerBound": {
+    "poolRuntimeBytes": 19871,
+    "implementationCodeDepositGas": "3974200",
+    "implementationCodeDepositAtCurrentGasPriceWei": "79650916400000",
+    "excludes": "Constructors, libraries, verifiers, adapters, proxy, calldata and L1 data fees; not a deployment quote"
+  },
+  "verifierRuntimeKeccak256": "0xf6936498aeda264fdf80515ed924303f6f7558bb2ae49e0191680bd642953f7c",
+  "proofs": [
+    {
+      "fixture": "partial",
+      "accepted": true,
+      "changedSignalsRejected": 8,
+      "contextOrigin": "locally generated fixture; verifier arithmetic check only, no mainnet settlement"
+    },
+    {
+      "fixture": "full",
+      "accepted": true,
+      "changedSignalsRejected": 8,
+      "contextOrigin": "locally generated fixture; verifier arithmetic check only, no mainnet settlement"
+    }
+  ],
+  "passed": true,
+  "walletDetailsOmitted": true
+}

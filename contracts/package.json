@@ -1,0 +1,24 @@
+{
+  "name": "nullis-contract-adaptation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bootstrap": "node bootstrap.mjs",
+    "test": "node test-pool.mjs",
+    "build": "node compile.mjs",
+    "preflight:mainnet": "node --env-file=../.env.local mainnet-preflight.mjs",
+    "test:mainnet-fork": "node --env-file=../.env.local test-mainnet-fork.mjs"
+  },
+  "dependencies": {
+    "@iden3/js-merkletree": "1.2.0",
+    "@openzeppelin/contracts": "5.1.0",
+    "@openzeppelin/contracts-upgradeable": "5.1.0",
+    "circomlibjs": "0.1.7",
+    "ethers": "6.13.1",
+    "ganache": "7.9.2",
+    "poseidon-lite": "0.3.0",
+    "snarkjs": "0.7.5",
+    "solc": "0.8.27"
+  }
+}

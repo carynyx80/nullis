@@ -1,9 +1,9 @@
-# Fresh deposit proof experiment
+# Local deposit and withdrawal proof tools
 
 This isolated experiment compiles Zeto's Apache-2.0 deposit circuit at commit
 `dd495492f540c5f71988d15f8d3eb2b0d93c5099`, generates a new Groth16 proof,
 verifies it, and rejects an altered public amount and inconsistent commitment.
-It does not implement transfers, withdrawals, key recovery or an indexer.
+It does not implement a production wallet, transfers, key recovery or an indexer.
 The deposit amount and output commitments are public circuit signals.
 
 `node probe-proof-mainnet.mjs` exports the test verifier, compiles its runtime
@@ -26,11 +26,30 @@ downloads the official Circom 2.2.2 executable into ignored artifacts and record
 its hash. Other platforms use the pinned WASI package. Only the Windows native
 compiler path has been validated here.
 
-**All generated setup parameters and keys are UNSAFE LOCAL TEST MATERIAL.**
-There is no trusted setup ceremony or production key provenance here. Never
-deploy these verifiers or keys to a chain that accepts real assets. All artifacts,
+**Circuit-specific keys are UNSAFE LOCAL TEST MATERIAL.**
+The deposit setup is generated locally. The withdrawal setup uses published
+phase-one parameters but a local circuit-specific contribution, without an
+independent production ceremony. Never deploy these verifiers or keys to a
+chain that accepts real assets. All artifacts,
 including private witness inputs, are ignored and never built into the website.
 The experiment performs no network transaction and requires no wallet secret.
+
+## Withdrawal setup
+
+After generating the deposit artifacts, run `npm run setup:withdrawal`. It
+compiles the new 64-level circuit, downloads phase-one parameters from
+`https://circom.info/powersOfTau28_hez_final_17.ptau`, compares the full file with
+the BLAKE2b-512 checksum in the pinned upstream manifest, and creates a locally
+contributed circuit-specific key. snarkJS verifies the key before exporting the
+verifier and recording source/R1CS/WASM/key hashes. Existing keys are reused
+only when circuit and key hashes match. The download is about 151 MB and stays
+in ignored artifacts. The published phase-one file does not make this local
+phase-two setup production-ready.
+
+Then run `npm test` in `../../contracts`. That suite creates fresh withdrawal
+proofs using actual local contract addresses and checks partial/full payout,
+recipient/network/pool/token binding, failed-transfer rollback, canonical keys,
+inactive inputs, and spent-nullifier rejection. See `../../contracts/WITHDRAWAL.md`.
 
 Production work still requires reviewed transfer/withdrawal circuits, verified
 ceremony artifacts, compatible contracts, client-only keys and proofs, encrypted
