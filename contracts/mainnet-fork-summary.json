@@ -1,0 +1,88 @@
+{
+  "checkedAt": "2026-10-17T06:59:56.600Z",
+  "mode": "in-memory Robinhood mainnet fork",
+  "chainId": 4663,
+  "forkBlock": {
+    "number": "90734422",
+    "hash": "0x087a27bd6878a1e3c3d9a5c6c81a56e31dbf288c38aa01589c49350051aee0ce",
+    "timestamp": 1792220382
+  },
+  "mainnetTransactionsSent": 0,
+  "mainnetContractsDeployed": false,
+  "productionReady": false,
+  "testKeysOnly": true,
+  "asset": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+  "passed": true,
+  "checks": [
+    "Mainnet WETH bytecode matches the pinned block; local ETH wraps and deposits 300 wei through a real proof",
+    "noncanonical representations of an owner key cannot create fresh nullifiers for the same notes",
+    "withdrawal proof rejects changed recipient, amount, change commitment/data, unknown root and replay into another token pool",
+    "proof intent is bound to chain, pool and backing asset",
+    "an untrusted relayer executes a 120-base-unit withdrawal only to the proven recipient; double-spending is rejected",
+    "circuit rejects value in an unused input, an incorrect spending key, false input flags and a negative-value change note",
+    "the remaining change note is fully withdrawn with one active input; vault ends empty and the full 300-token deposit is recovered"
+  ],
+  "withdrawal": {
+    "partialGas": "1038675",
+    "fullGas": "362561",
+    "merkleDepth": 64,
+    "productionSetup": false,
+    "encryptedDeliveryTested": false
+  },
+  "deploymentGas": [
+    {
+      "name": "Groth16Verifier",
+      "gasUsed": "363103"
+    },
+    {
+      "name": "DepositVerifierAdapter",
+      "gasUsed": "206584"
+    },
+    {
+      "name": "Groth16Verifier",
+      "gasUsed": "535449"
+    },
+    {
+      "name": "WithdrawalVerifierAdapter",
+      "gasUsed": "211141"
+    },
+    {
+      "name": "RejectVerifier",
+      "gasUsed": "96457"
+    },
+    {
+      "name": "PoseidonUnit2L",
+      "gasUsed": "2157126"
+    },
+    {
+      "name": "PoseidonUnit3L",
+      "gasUsed": "2745274"
+    },
+    {
+      "name": "SmtLib",
+      "gasUsed": "1568370"
+    },
+    {
+      "name": "NullisPool",
+      "gasUsed": "4390441"
+    },
+    {
+      "name": "NullisPoolProxy",
+      "gasUsed": "1508482"
+    },
+    {
+      "name": "TestAsset",
+      "gasUsed": "898049"
+    },
+    {
+      "name": "NullisPool",
+      "gasUsed": "4381278"
+    },
+    {
+      "name": "NullisPoolProxy",
+      "gasUsed": "1508482"
+    }
+  ],
+  "note": "Gas is from local EVM execution, includes the second control pool, and is not a mainnet deployment quote. No production setup, user recovery or privacy is established.",
+  "amountUnit": "ERC20 base units (wei of WETH)"
+}

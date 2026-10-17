@@ -4,6 +4,10 @@ This is a local deposit/withdrawal contract prototype. It is not a mainnet
 deposit product. There is no mainnet deployment script, approved production
 proving key, or frontend financial integration here.
 
+Read-only mainnet verifier checks and a WETH fork integration test are available
+in [MAINNET.md](./MAINNET.md). Neither sends transactions to the live chain or
+approves the current test proving material for production.
+
 ## Implemented
 
 - `NullisPool.sol` permanently rejects external minting of unbacked notes.

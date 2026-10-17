@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-17T06:47:46.686Z",
+  "checkedAt": "2026-10-17T07:03:49.387Z",
   "compiler": "0.8.27+commit.40a35a09.Emscripten.clang",
   "runtimeBytes": 19871,
   "maximumRuntimeBytes": 24576,
@@ -21,7 +21,7 @@
     "withdrawal proof rejects changed recipient, amount, change commitment/data, unknown root and replay into another token pool",
     "proof intent is bound to chain, pool and backing asset",
     "failed or short withdrawal payouts atomically restore nullifiers, commitments and token balances",
-    "an untrusted relayer executes a 120-token withdrawal only to the proven recipient; reentrancy and double-spending are rejected",
+    "an untrusted relayer executes a 120-base-unit withdrawal only to the proven recipient; double-spending is rejected",
     "circuit rejects value in an unused input, an incorrect spending key, false input flags and a negative-value change note",
     "the remaining change note is fully withdrawn with one active input; vault ends empty and the full 300-token deposit is recovered"
   ],
@@ -32,8 +32,8 @@
   "withdrawalImplemented": true,
   "withdrawalProofTested": true,
   "withdrawal": {
-    "partialGas": "1360168",
-    "fullGas": "355128",
+    "partialGas": "1193874",
+    "fullGas": "355152",
     "merkleDepth": 64,
     "productionSetup": false,
     "encryptedDeliveryTested": false

@@ -6,7 +6,9 @@
   "scripts": {
     "bootstrap": "node bootstrap.mjs",
     "test": "node test-pool.mjs",
-    "build": "node compile.mjs"
+    "build": "node compile.mjs",
+    "preflight:mainnet": "node --env-file=../.env.local mainnet-preflight.mjs",
+    "test:mainnet-fork": "node --env-file=../.env.local test-mainnet-fork.mjs"
   },
   "dependencies": {
     "@iden3/js-merkletree": "1.2.0",

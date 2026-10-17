@@ -1,6 +1,6 @@
 // Local test utilities; not browser key management or a production wallet.
 import assert from 'node:assert/strict';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {readFileSync, writeFileSync, mkdirSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {spawn} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
@@ -9,8 +9,9 @@ import {poseidon3, poseidon4} from 'poseidon-lite';
 import {createRequire} from 'node:module';
 const {Merkletree, InMemoryDB, str2Bytes, ZERO_HASH} = createRequire(import.meta.url)('@iden3/js-merkletree');
 
-export async function testWithdrawals({root, prover, pool, feePool, asset, signer, attacker, provider, store, reject, generated, checks}) {
-  const coder = AbiCoder.defaultAbiCoder(), artifacts = resolve(root, 'artifacts');
+export async function testWithdrawals({root, prover, pool, feePool, asset, signer, attacker, provider, store, reject, generated, checks, tokenFaults = true, initialBalance = 1_000_000_000n, artifactDirectory}) {
+  const coder = AbiCoder.defaultAbiCoder(), artifacts = artifactDirectory || resolve(root, 'artifacts');
+  mkdirSync(artifacts,{recursive:true});
   const field = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
   const deposit = JSON.parse(readFileSync(resolve(prover, 'input.json')));
   const publicValues = JSON.parse(readFileSync(resolve(prover, 'public.json')));
@@ -84,6 +85,7 @@ export async function testWithdrawals({root, prover, pool, feePool, asset, signe
     assert.equal(await generated.verifyProof(...partial.args, signals), false);
   }
   checks.push('proof intent is bound to chain, pool and backing asset');
+  if (tokenFaults) {
   await (await asset.setPayoutReturnsFalse(true)).wait();
   await reject(() => call(pool, partial), 'SafeERC20FailedOperation', pool.interface);
   await assert.rejects(async () => (await pool.withdraw(partial.amount,partial.nullifiers,partial.change.commitment,partial.encodedProof,partial.data,{gasLimit:10000000})).wait());
@@ -96,15 +98,18 @@ export async function testWithdrawals({root, prover, pool, feePool, asset, signe
   checks.push('failed or short withdrawal payouts atomically restore nullifiers, commitments and token balances');
   await (await asset.setFee(false)).wait();
   await (await asset.setCallback(address, pool.interface.encodeFunctionData('withdraw',[partial.amount,partial.nullifiers,change.commitment,partial.encodedProof,partial.data]))).wait();
+  }
   const partialReceipt = await (await pool.connect(attacker).withdraw(partial.amount,partial.nullifiers,change.commitment,partial.encodedProof,partial.data,{gasLimit:10000000})).wait();
+  if (tokenFaults) {
   assert.equal(await asset.callbackSucceeded(), false); assert.equal(await asset.callbackFailure(), id('ReentrancyGuardReentrantCall()').slice(0,10));
+  }
   assert.equal(await asset.balanceOf(recipient), 120n); assert.equal(await asset.balanceOf(address), 180n);
   assert.equal(await asset.balanceOf(await attacker.getAddress()), 0n);
   for (const nullifier of partial.nullifiers) await reject(()=>store.validateInputs.staticCall([nullifier],false),'UTXOAlreadySpent',store.interface);
   await tree.add(change.commitment, change.commitment); assert.equal((await tree.root()).bigInt(), await pool.getRoot());
   await reject(() => call(pool, partial), 'UTXOAlreadySpent', pool.interface);
-  checks.push('an untrusted relayer executes a 120-token withdrawal only to the proven recipient; reentrancy and double-spending are rejected');
-  await (await asset.setCallback(ZeroAddress,'0x')).wait();
+  checks.push('an untrusted relayer executes a 120-base-unit withdrawal only to the proven recipient; double-spending is rejected');
+  if (tokenFaults) await (await asset.setCallback(ZeroAddress,'0x')).wait();
   const fullInput = await makeWitness([change], {commitment:0n,value:0n,salt:0n}, '0x');
   const badWitnesses = [
     {...fullInput.input,inputValues:[180n,7n]},
@@ -121,7 +126,7 @@ export async function testWithdrawals({root, prover, pool, feePool, asset, signe
   const full = await prove('full', fullInput);
   const fullReceipt = await (await pool.withdraw(full.amount,full.nullifiers,0,full.encodedProof,full.data,{gasLimit:10000000})).wait();
   assert.equal(await asset.balanceOf(address),0n); assert.equal(await asset.balanceOf(recipient),300n);
-  assert.equal(await asset.balanceOf(await signer.getAddress()),1_000_000_000n-300n);
+  assert.equal(await asset.balanceOf(await signer.getAddress()),initialBalance-300n);
   await reject(()=>store.validateInputs.staticCall([full.nullifiers[0]],false),'UTXOAlreadySpent',store.interface);
   await reject(()=>call(pool,full),'UTXOAlreadySpent',pool.interface);
   checks.push('the remaining change note is fully withdrawn with one active input; vault ends empty and the full 300-token deposit is recovered');
