@@ -1,0 +1,57 @@
+import {createRequire} from 'node:module';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import assert from 'node:assert/strict';
+import {build,accountRoot} from './build.mjs';
+const require=createRequire(new URL('./package.json',import.meta.url));
+const ganache=require('ganache');const {BrowserProvider,ContractFactory,ZeroAddress}=require('ethers');
+const compiled=build({'test/Fixtures.sol':{content:readFileSync(resolve(accountRoot,'test/Fixtures.sol'),'utf8')}});
+const local=ganache.provider({chain:{chainId:4663,hardfork:'shanghai',allowUnlimitedContractSize:false},logging:{quiet:true}});
+const provider=new BrowserProvider(local);provider.pollingInterval=10;const checks=[];
+async function rejected(fn){await assert.rejects(fn);}
+try{
+ const signer=await provider.getSigner(0),attacker=await provider.getSigner(1),owner=await signer.getAddress();
+ async function deploy(name,args=[]){const a=name==='NullispadPublicAccount'?compiled:compiled.contracts['test/Fixtures.sol'][name];const c=await new ContractFactory(a.abi,'0x'+a.evm.bytecode.object,signer).deploy(...args);await c.waitForDeployment();return c;}
+ const weth=await deploy('Weth'),usd=await deploy('Token'),factory=await deploy('Factory'),router=await deploy('Router',[weth.target,factory.target]);
+ const account=await deploy('NullispadPublicAccount',[weth.target,usd.target,router.target,factory.target]);
+ assert.ok(compiled.runtimeBytes<24576);assert.equal(account.interface.hasFunction('upgradeToAndCall'),false);assert.equal(account.interface.hasFunction('setOwner'),false);
+ checks.push('Normal contract size; no owner, upgrade or admin execution interface');
+ await rejected(()=>deploy('NullispadPublicAccount',[usd.target,weth.target,router.target,factory.target]));
+ checks.push('Constructor rejects mismatched router and token configuration');
+ await rejected(()=>account.depositNative.staticCall({value:0}));await rejected(()=>account.deposit.staticCall(ZeroAddress,1));await rejected(()=>signer.sendTransaction({to:account.target,value:1}));
+ checks.push('Zero deposits, native-token misuse and uncredited direct ETH sends are rejected');
+ await(await account.depositNative({value:1000})).wait();await rejected(()=>account.connect(attacker).withdraw.staticCall(ZeroAddress,1));assert.equal(await account.balances(owner,ZeroAddress),1000n);
+ checks.push('Only the credited wallet can withdraw; another wallet has no access');
+ await(await usd.mint(owner,1000)).wait();await(await usd.approve(account.target,1000)).wait();
+ await(await usd.configure(true,false,ZeroAddress)).wait();await rejected(()=>account.deposit.staticCall(usd.target,100));assert.equal(await account.balances(owner,usd.target),0n);
+ await(await usd.configure(false,true,ZeroAddress)).wait();await rejected(()=>account.deposit.staticCall(usd.target,100));
+ checks.push('Fee-taking and failed ERC20 deposits do not create credited balances');
+ await(await usd.configure(false,false,account.target)).wait();await(await account.deposit(usd.target,500)).wait();assert.equal(await usd.callbackSucceeded(),false);assert.equal(await account.balances(owner,usd.target),500n);
+ checks.push('Token callback cannot reenter deposit accounting');
+ await(await usd.configure(true,false,ZeroAddress)).wait();await rejected(async()=>{await(await account.withdraw(usd.target,100,{gasLimit:500000})).wait()});assert.equal(await account.balances(owner,usd.target),500n);assert.equal(await usd.balanceOf(account.target),500n);
+ await(await usd.configure(false,true,ZeroAddress)).wait();await rejected(async()=>{await(await account.withdraw(usd.target,100,{gasLimit:500000})).wait()});assert.equal(await account.balances(owner,usd.target),500n);
+ checks.push('Short and failed token payouts atomically restore ledger and backing');
+ await(await usd.configure(false,false,ZeroAddress)).wait();await(await account.withdraw(usd.target,100)).wait();assert.equal(await account.balances(owner,usd.target),400n);
+ await rejected(()=>account.withdraw.staticCall(usd.target,401));await rejected(()=>account.withdraw.staticCall(usd.target,0));
+ checks.push('Partial withdrawal and overdraft/zero rejection preserve accounting');
+ const now=()=>provider.getBlock('latest').then(b=>b.timestamp);
+ await rejected(()=>account.swap.staticCall(ZeroAddress,usd.target,100,100,1,(now()).then(t=>t-1)));
+ await rejected(()=>account.swap.staticCall(ZeroAddress,usd.target,100,100,0,(now()).then(t=>t+120)));
+ await rejected(()=>account.swap.staticCall(ZeroAddress,usd.target,100,100,1,(now()).then(t=>t+1201)));
+ checks.push('Expired swaps, excessive deadlines and zero minimum outputs fail');
+ await(await router.configure(true,false)).wait();await rejected(async()=>{await(await account.swap(usd.target,weth.target,100,100,1,(await now())+120,{gasLimit:1000000})).wait()});assert.equal(await account.balances(owner,usd.target),400n);
+ await(await router.configure(false,true)).wait();await rejected(async()=>{await(await account.swap(usd.target,weth.target,100,100,1,(await now())+120,{gasLimit:1000000})).wait()});assert.equal(await account.balances(owner,usd.target),400n);
+ checks.push('Router short-spends or missing output cannot reduce credited funds');
+ await(await router.configure(false,false)).wait();await(await account.swap(usd.target,weth.target,100,100,100,(await now())+120)).wait();assert.equal(await account.balances(owner,usd.target),300n);assert.equal(await account.balances(owner,weth.target),100n);assert.equal(await usd.allowance(account.target,router.target),0n);
+ checks.push('Swap accounts actual output and clears exact router allowance');
+ const recipient=await deploy('Recipient',[account.target]);await(await recipient.deposit({value:100})).wait();await(await recipient.configure(true)).wait();await rejected(async()=>{await(await recipient.withdraw(100,{gasLimit:500000})).wait()});assert.equal(await account.balances(recipient.target,ZeroAddress),100n);
+ await(await recipient.configure(false)).wait();await(await recipient.withdraw(100)).wait();assert.equal(await recipient.reentered(),false);assert.equal(await account.balances(recipient.target,ZeroAddress),0n);
+ checks.push('Rejected native payout restores funds; a receiving contract cannot reenter withdrawal');
+ await(await account.swap(ZeroAddress,weth.target,0,100,100,(await now())+120)).wait();assert.equal(await account.balances(owner,weth.target),200n);
+ await(await account.swap(weth.target,ZeroAddress,0,100,100,(await now())+120)).wait();assert.equal(await account.balances(owner,ZeroAddress),1000n);
+ checks.push('Native wrap/unwrap is exact 1:1 and preserves separate asset credits');
+ await(await weth.configureWrap(true,false)).wait();await rejected(async()=>{await(await account.swap(ZeroAddress,weth.target,0,100,100,(await now())+120,{gasLimit:1000000})).wait()});assert.equal(await account.balances(owner,ZeroAddress),1000n);
+ await(await weth.configureWrap(false,false)).wait();await(await weth.deposit({value:1000})).wait();await(await weth.configureWrap(false,true)).wait();await rejected(async()=>{await(await account.swap(weth.target,ZeroAddress,0,100,100,(await now())+120,{gasLimit:1000000})).wait()});assert.equal(await account.balances(owner,weth.target),100n);
+ checks.push('Short wrapped-ETH minting or native redemption cannot create an under-backed account credit');
+ const report={checkedAt:new Date().toISOString(),passed:true,checks,sourceSha256:compiled.sourceSha256,runtimeBytes:compiled.runtimeBytes,mainnetTransactionsSent:0};writeFileSync(resolve(accountRoot,'artifacts/local.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
+}finally{await provider.destroy();await local.disconnect()}

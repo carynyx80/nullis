@@ -2,7 +2,7 @@
   "name": "nullispad",
   "version": "0.1.0",
   "private": true,
-  "description": "NULLISPAD interface, read-only wallet integration, and encrypted local profiles. Financial privacy protocol not deployed.",
+  "description": "Nullispad public accounts and Uniswap swaps on Robinhood Chain; wallet-signed deposits and withdrawals.",
   "engines": {
     "node": ">=22"
   },
@@ -12,7 +12,8 @@
     "build": "node scripts/build-registry.mjs",
     "build:vercel": "node scripts/build-vercel.mjs",
     "db:generate": "node scripts/generate-schema.cjs generate --config drizzle.config.ts",
-    "check": "node --check dist/wallet-core.js && node --check dist/wallet-app.js && node --check dist/profile.js && node --check dist/vault.js && node --check dist/vault-ui.js"
+    "check": "node --check dist/wallet-core.js && node --check dist/wallet-app.js && node --check dist/profile.js && node --check dist/vault.js && node --check dist/vault-ui.js && node --check dist/account-core.js && node --check dist/account-app.js",
+    "test:public": "node --test account/client.test.cjs account/ui.test.cjs"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",

@@ -13,3 +13,5 @@ button:disabled{opacity:.45;cursor:not-allowed}.wallet-choice{width:100%;text-al
 
 /* Nullispad social link */
 footer{gap:16px;flex-wrap:wrap;align-items:center}.social-link{color:#c7b3e9;text-decoration:none;white-space:nowrap}.social-link:hover{color:#eee4ff;text-decoration:underline}.social-link:focus-visible{outline:2px solid #b5a0ef;outline-offset:5px;border-radius:2px}
+
+#account-refresh{margin-top:14px;width:100%;padding:9px;border:1px solid #59436f;background:transparent;border-radius:8px;color:#c9b7df}.transaction-link,.account-address a{color:#cbb6f0;text-decoration:none;overflow-wrap:anywhere}.transaction-link:hover,.account-address a:hover{text-decoration:underline}#form-error a{display:block;margin-top:10px}.profile-note{line-height:1.7}

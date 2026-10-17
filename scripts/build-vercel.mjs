@@ -11,4 +11,4 @@ for(const entry of await readdir('dist',{withFileTypes:true})){
  }else await copyFile('dist/'+entry.name,'public/'+entry.name);
  count++;
 }
-console.log('Vercel build ready: '+count+' web assets. Global registration and financial transactions are disabled.');
+console.log('Vercel build ready: '+count+' web assets. Public account deployment and transactions require wallet approval. Global username registration is disabled.');

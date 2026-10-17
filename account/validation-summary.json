@@ -1,0 +1,74 @@
+{
+  "local": {
+    "checkedAt": "2026-10-17T07:25:26.447Z",
+    "passed": true,
+    "checks": [
+      "Normal contract size; no owner, upgrade or admin execution interface",
+      "Constructor rejects mismatched router and token configuration",
+      "Zero deposits, native-token misuse and uncredited direct ETH sends are rejected",
+      "Only the credited wallet can withdraw; another wallet has no access",
+      "Fee-taking and failed ERC20 deposits do not create credited balances",
+      "Token callback cannot reenter deposit accounting",
+      "Short and failed token payouts atomically restore ledger and backing",
+      "Partial withdrawal and overdraft/zero rejection preserve accounting",
+      "Expired swaps, excessive deadlines and zero minimum outputs fail",
+      "Router short-spends or missing output cannot reduce credited funds",
+      "Swap accounts actual output and clears exact router allowance",
+      "Rejected native payout restores funds; a receiving contract cannot reenter withdrawal",
+      "Native wrap/unwrap is exact 1:1 and preserves separate asset credits",
+      "Short wrapped-ETH minting or native redemption cannot create an under-backed account credit"
+    ],
+    "sourceSha256": "70fcdf238c4e550a21a80ea782d56110b20162dfc1c3e9e553f267a57d05b1f1",
+    "runtimeBytes": 5002,
+    "mainnetTransactionsSent": 0
+  },
+  "mainnetFork": {
+    "checkedAt": "2026-10-17T07:23:50.435Z",
+    "mode": "local fork using mainnet token and Uniswap deployments",
+    "chainId": 4663,
+    "block": {
+      "number": 90748400,
+      "hash": "0xf8028d899cb5c37ad22adfe376f1a4061d6d27b97495ec0fb359135f9fa18855",
+      "timestamp": 1792221824
+    },
+    "sourceSha256": "70fcdf238c4e550a21a80ea782d56110b20162dfc1c3e9e553f267a57d05b1f1",
+    "mainnetTransactionsSent": 0,
+    "contractsDeployedOnMainnet": false,
+    "private": false,
+    "passed": true,
+    "checks": [
+      "Deployed runtime matches the compiled account after immutable masking",
+      "Native deposit credits only the depositor; another wallet cannot withdraw it",
+      "Mainnet Uniswap router swaps deposited ETH to USDG; failed minimum output preserves the original balance",
+      "USDG withdrawal pays the caller and debits exactly the credited amount",
+      "Reverse swap unwraps WETH and enables full native ETH withdrawal",
+      "Actual USDG approval, deposit and full withdrawal complete with no remaining account claim",
+      "WETH deposit, exact 1:1 unwrap and ETH withdrawal finish with all account balances and backing empty",
+      "Router token allowances are zero after swaps",
+      "The browser transaction controller performs deployment, exact approvals, deposits, quotes, swaps and withdrawals with simulation, gas estimation and confirmed receipts"
+    ],
+    "swapGas": "210020",
+    "deploymentGas": "1177244",
+    "amountInWei": "1000000000000000",
+    "usdReceivedBaseUnits": "2429743",
+    "usdDecimals": 6,
+    "fee": 100
+  },
+  "browserControllerTests": 16,
+  "existingAppTests": 35,
+  "mainnetDeployment": null,
+  "independentlyAudited": false,
+  "liveDeploymentSimulation": {
+    "checkedAt": "2026-10-17T07:39:55.214Z",
+    "chainId": 4663,
+    "sourceSha256": "70fcdf238c4e550a21a80ea782d56110b20162dfc1c3e9e553f267a57d05b1f1",
+    "mainnetCreationSimulation": true,
+    "estimatedGas": "1192417",
+    "bufferedGas": "1430901",
+    "gasPriceWei": "20114000",
+    "bufferedEstimatedETH": "0.000028781142714",
+    "walletCanCoverCurrentEstimate": true,
+    "transactionsSent": 0,
+    "notAFeeGuarantee": true
+  }
+}

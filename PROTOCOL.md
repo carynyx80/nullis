@@ -1,4 +1,17 @@
-# NULLIS protocol specification and implementation boundary
+# Nullispad protocol specification and implementation boundary
+
+## Initial-release decision — 17 October 2026
+
+The user explicitly approved clearly labelled public swaps and a public account
+for deposits/withdrawals. The initial release now uses `account/PublicAccount.sol`
+and the browser wallet for signing, with ETH/WETH/USDG and Uniswap v3. There are no
+shielded funds or private execution claims in this release. See `account/README.md`
+for deployment, recovery, supported assets, tested behavior and limitations.
+Mainnet functionality is established only by a verified deployment and live receipts;
+fork tests alone do not establish a live release.
+
+The remainder of this document describes the separate future private protocol.
+Its ZK setup/privacy requirements do not make the public implementation private.
 
 ## Product
 

@@ -1,0 +1,55 @@
+/* Public beta settlement. Every write is submitted through the user's wallet. */
+(function(root){'use strict';
+const E=typeof module!=='undefined'&&module.exports?require('../account/node_modules/ethers'):root.ethers;
+const ZERO='0x0000000000000000000000000000000000000000';
+const TOKEN_ABI=['function decimals() view returns(uint8)','function balanceOf(address) view returns(uint256)','function allowance(address,address) view returns(uint256)','function approve(address,uint256) returns(bool)'];
+const QUOTER_ABI=['function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96)) returns(uint256,uint160,uint32,uint256)'];
+function amount(value,decimals){if(typeof value!=='string'||!/^\d+(\.\d+)?$/.test(value)||value.length>90)throw Error('Enter a positive amount without exponents.');const n=E.parseUnits(value,decimals);if(n<=0n||n>=2n**256n)throw Error('Enter an amount greater than zero.');return n}
+function maskRuntime(code,references){let s=code.slice(2);for(const {start,length} of references){if((start+length)*2>s.length)throw Error('Unexpected account runtime');s=s.slice(0,start*2)+'0'.repeat(length*2)+s.slice((start+length)*2)}return '0x'+s}
+class Account {
+ constructor(provider,config,{status=()=>{},pending=()=>{}}={}){this.p=provider;this.c=config;this.iface=new E.Interface(config.abi);this.token=new E.Interface(TOKEN_ABI);this.quoter=new E.Interface(QUOTER_ABI);this.status=status;this.pending=pending;this.activeWrite=false;this.timeout=180000}
+ async read(method,params=[]){if(method==='eth_sendTransaction')return this.p.request({method,params});let timer;try{return await Promise.race([this.p.request({method,params}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Wallet RPC timed out. Refresh and check transaction status.')),20000)})])}finally{clearTimeout(timer)}}
+ async identity(){const [chain,accounts]=await Promise.all([this.read('eth_chainId'),this.read('eth_accounts')]);if(BigInt(chain)!==4663n)throw Error('Switch your wallet to Robinhood Chain.');if(!accounts?.[0])throw Error('Connect your wallet first.');return E.getAddress(accounts[0])}
+ async guard(owner){if((await this.identity()).toLowerCase()!==owner.toLowerCase())throw Error('Wallet account changed. Review the action again.')}
+ async call(to,iface,name,args=[],block='latest',owner){const tx={to,data:iface.encodeFunctionData(name,args)};if(owner)tx.from=owner;return iface.decodeFunctionResult(name,await this.read('eth_call',[tx,block]))}
+ async network(){await this.identity();for(const key of ['router','quoter','factory','weth','usd']){const code=await this.read('eth_getCode',[this.c.network[key],'latest']);if(E.keccak256(code)!==this.c.hashes[key])throw Error('A supported network contract changed. Refresh the reviewed configuration.')}}
+ async verify(address){const target=E.getAddress(address);const code=await this.read('eth_getCode',[target,'latest']);if(code==='0x'||E.keccak256(maskRuntime(code,this.c.immutableReferences))!==this.c.runtimeHash)throw Error('This is not the expected Nullispad account contract.');
+  for(const [name,key] of [['wrappedEther','weth'],['dollar','usd'],['router','router']]){const value=(await this.call(target,this.iface,name))[0];if(value.toLowerCase()!==this.c.network[key])throw Error('Account contract configuration does not match Robinhood Chain.')}return target}
+ async rows(address){const owner=await this.identity();const target=address?await this.verify(address):null;
+  const rows=[];for(const [symbol,asset] of [['ETH',ZERO],['WETH',this.c.network.weth],['USDG',this.c.network.usd]]){
+   const decimals=asset===ZERO?18:Number((await this.call(asset,this.token,'decimals'))[0]);if(!Number.isInteger(decimals)||decimals<0||decimals>36)throw Error('Unsupported token decimals');
+   const wallet=asset===ZERO?BigInt(await this.read('eth_getBalance',[owner,'latest'])):(await this.call(asset,this.token,'balanceOf',[owner]))[0];
+   const balance=target?(await this.call(target,this.iface,'balances',[owner,asset]))[0]:0n;rows.push({symbol,asset,decimals,wallet,balance});
+  }await this.guard(owner);return {owner,target,rows}}
+ async quote(address,assetIn,assetOut,value,slippage){const owner=await this.identity();await this.network();const target=await this.verify(address);
+  if(![50,100,200].includes(slippage))throw Error('Unsupported slippage tolerance');
+  const snapshot=await this.rows(target),input=snapshot.rows.find(t=>t.asset.toLowerCase()===assetIn.toLowerCase()),output=snapshot.rows.find(t=>t.asset.toLowerCase()===assetOut.toLowerCase());
+  if(!input||!output||input.asset===output.asset)throw Error('Select two different supported assets.');
+  const valueIn=amount(value,input.decimals);if(input.balance<valueIn)throw Error('Deposit this asset into your public account first.');
+  const tokenIn=input.asset===ZERO?this.c.network.weth:input.asset,tokenOut=output.asset===ZERO?this.c.network.weth:output.asset;
+  const block=await this.read('eth_blockNumber'),header=await this.read('eth_getBlockByNumber',[block,false]);
+  if(Math.abs(Date.now()/1000-Number(BigInt(header.timestamp)))>300)throw Error('Wallet RPC is serving an old block.');
+  let best={fee:0,out:valueIn};
+  if(tokenIn.toLowerCase()!==tokenOut.toLowerCase()){
+   const results=await Promise.allSettled(this.c.network.fees.map(async fee=>({fee,out:(await this.call(this.c.network.quoter,this.quoter,'quoteExactInputSingle',[[tokenIn,tokenOut,valueIn,fee,0]],block))[0]})));
+   const valid=results.filter(r=>r.status==='fulfilled'&&r.value.out>0n).map(r=>r.value);if(!valid.length)throw Error('No supported Uniswap v3 route is available for this amount.');best=valid.reduce((a,b)=>b.out>a.out?b:a);
+  }
+  const minimum=tokenIn.toLowerCase()===tokenOut.toLowerCase()?best.out:best.out*BigInt(10000-slippage)/10000n;if(minimum<=0n)throw Error('Amount is too small.');
+  await this.guard(owner);return {owner,target,assetIn:input.asset,assetOut:output.asset,valueIn,amountOut:best.out,minimum,fee:best.fee,decimalsOut:output.decimals,symbolIn:input.symbol,symbolOut:output.symbol,slippage,createdAt:Date.now(),deadline:Number(BigInt(header.timestamp))+120};
+ }
+ async transact(owner,tx,label){await this.guard(owner);this.status('Simulating '+label+'…');const call={from:owner,...tx};await this.read('eth_call',[call,'latest']);const estimate=BigInt(await this.read('eth_estimateGas',[call]));const gas=(estimate*120n+99n)/100n;if(gas>5000000n)throw Error('Unexpected gas estimate; transaction was not submitted.');
+  const [price,balance]=await Promise.all([this.read('eth_gasPrice'),this.read('eth_getBalance',[owner,'latest'])]);if(BigInt(balance)<BigInt(tx.value||0)+gas*BigInt(price))throw Error('Not enough ETH for this action and estimated gas.');await this.guard(owner);this.status('Confirm '+label+' in your wallet.');
+  const hash=await this.read('eth_sendTransaction',[{...call,gas:'0x'+gas.toString(16)}]);if(typeof hash!=='string'||!/^0x[0-9a-f]{64}$/i.test(hash))throw Error('Wallet did not return a transaction hash.');const pending={hash,label,owner,to:tx.to||null};this.pending({...pending,status:'pending'});this.status(label+' submitted. Waiting for confirmation…');
+  try{const txInfo=await this.read('eth_getTransactionByHash',[hash]);if(typeof txInfo?.nonce==='string'&&/^0x[0-9a-f]+$/i.test(txInfo.nonce)){pending.nonce=txInfo.nonce;this.pending({...pending,status:'pending'})}}catch{}
+  const start=Date.now();while(Date.now()-start<this.timeout){const receipt=await this.read('eth_getTransactionReceipt',[hash]);if(receipt){if(BigInt(receipt.status)!==1n){this.pending({...pending,status:'reverted'});const error=Error(label+' reverted. Account changes were rolled back.');error.hash=hash;error.confirmed=true;throw error}if(receipt.from.toLowerCase()!==owner.toLowerCase()||(tx.to&&receipt.to?.toLowerCase()!==tx.to.toLowerCase()))throw Error('Unexpected transaction receipt.');this.pending({...pending,status:'confirmed'});this.status(label+' confirmed.');return receipt}await new Promise(r=>setTimeout(r,2000))}
+  const error=Error('Transaction is still pending. Check its explorer link before trying again.');error.hash=hash;throw error;
+ }
+ async write(fn){if(this.activeWrite)throw Error('Complete the current wallet action first.');this.activeWrite=true;try{return await fn()}finally{this.activeWrite=false}}
+ async deploy(){return this.write(async()=>{const owner=await this.identity();await this.network();const args=E.AbiCoder.defaultAbiCoder().encode(['address','address','address','address'],[this.c.network.weth,this.c.network.usd,this.c.network.router,this.c.network.factory]);const receipt=await this.transact(owner,{data:this.c.bytecode+args.slice(2)},'Deploy public account');await this.guard(owner);const address=await this.verify(receipt.contractAddress);return {address,receipt}})}
+ async approve(owner,asset,target,value){const allowance=(await this.call(asset,this.token,'allowance',[owner,target]))[0];if(allowance>=value)return;if(allowance>0n)await this.transact(owner,{to:asset,data:this.token.encodeFunctionData('approve',[target,0])},'Reset token allowance');await this.transact(owner,{to:asset,data:this.token.encodeFunctionData('approve',[target,value])},'Approve exact deposit amount');const current=(await this.call(asset,this.token,'allowance',[owner,target]))[0];if(current<value)throw Error('Token approval did not grant the requested allowance.');}
+ async deposit(address,asset,value){return this.write(async()=>{const s=await this.rows(address),row=s.rows.find(r=>r.asset.toLowerCase()===asset.toLowerCase());if(!row)throw Error('Unsupported asset');const v=amount(value,row.decimals);if(v>row.wallet)throw Error('Insufficient wallet balance.');await this.network();if(row.asset!==ZERO)await this.approve(s.owner,row.asset,s.target,v);return this.transact(s.owner,{to:s.target,data:this.iface.encodeFunctionData(row.asset===ZERO?'depositNative':'deposit',row.asset===ZERO?[]:[row.asset,v]),...(row.asset===ZERO?{value:'0x'+v.toString(16)}:{})},'Deposit '+row.symbol)})}
+ async withdraw(address,asset,value){return this.write(async()=>{const s=await this.rows(address),row=s.rows.find(r=>r.asset.toLowerCase()===asset.toLowerCase());if(!row)throw Error('Unsupported asset');const v=amount(value,row.decimals);if(v>row.balance)throw Error('Insufficient public account balance.');return this.transact(s.owner,{to:s.target,data:this.iface.encodeFunctionData('withdraw',[row.asset,v])},'Withdraw '+row.symbol)})}
+ async swap(quote){return this.write(async()=>{const owner=await this.identity();if(owner!==quote.owner||Date.now()-quote.createdAt>90000)throw Error('Quote expired or wallet changed. Get a fresh quote.');await this.network();await this.verify(quote.target);return this.transact(owner,{to:quote.target,data:this.iface.encodeFunctionData('swap',[quote.assetIn,quote.assetOut,quote.fee,quote.valueIn,quote.minimum,quote.deadline])},'Swap '+quote.symbolIn+' to '+quote.symbolOut)})}
+}
+const api={Account,amount,maskRuntime,ZERO};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.NullispadAccount=api;
+})(globalThis);

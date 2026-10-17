@@ -1,0 +1,84 @@
+import {createRequire} from 'node:module';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import assert from 'node:assert/strict';
+import {accountRoot} from './build.mjs';
+import {probe,ABI} from './probe.mjs';
+import {NETWORK as n} from './network.mjs';
+const require=createRequire(new URL('./package.json',import.meta.url));
+const ganache=require('ganache');
+const {BrowserProvider,ContractFactory,Contract,Interface,ZeroAddress,keccak256,formatUnits}=require('ethers');
+const {Account}=createRequire(import.meta.url)('../dist/account-core.js');
+const artifact=JSON.parse(readFileSync(resolve(accountRoot,'artifacts/account.json')));
+const network=await probe();
+const local=ganache.provider({fork:{url:n.rpc,blockNumber:network.block.number},chain:{chainId:4663,hardfork:'shanghai',allowUnlimitedContractSize:false},wallet:{totalAccounts:3},logging:{quiet:true}});
+const provider=new BrowserProvider(local);provider.pollingInterval=10;
+const checks=[],report={checkedAt:new Date().toISOString(),mode:'local fork using mainnet token and Uniswap deployments',chainId:4663,block:network.block,
+ sourceSha256:artifact.sourceSha256,mainnetTransactionsSent:0,contractsDeployedOnMainnet:false,private:false};
+let stage='initialize';
+try {
+ const signer=await provider.getSigner(0),other=await provider.getSigner(1),owner=await signer.getAddress();
+ stage='deploy public account';console.log(stage);
+ const walletEvents=[];
+ const client=new Account(local,{network:n,hashes:network.hashes,abi:artifact.abi,bytecode:'0x'+artifact.evm.bytecode.object,
+  runtimeHash:keccak256('0x'+artifact.evm.deployedBytecode.object),immutableReferences:Object.values(artifact.evm.deployedBytecode.immutableReferences).flat()},
+  {pending:event=>walletEvents.push(event)});
+ const deployment=await client.deploy();
+ const account=new Contract(deployment.address,artifact.abi,signer);
+ const deployed=await provider.getCode(account.target);let masked=deployed.slice(2);
+ for(const {start,length} of Object.values(artifact.evm.deployedBytecode.immutableReferences).flat())masked=masked.slice(0,start*2)+'0'.repeat(length*2)+masked.slice((start+length)*2);
+ assert.equal(keccak256('0x'+masked),keccak256('0x'+artifact.evm.deployedBytecode.object));
+ checks.push('Deployed runtime matches the compiled account after immutable masking');
+ const weth=new Contract(n.weth,['function deposit() payable','function approve(address,uint256) returns(bool)','function balanceOf(address) view returns(uint256)'],signer);
+ const usd=new Contract(n.usd,['function approve(address,uint256) returns(bool)','function balanceOf(address) view returns(uint256)','function decimals() view returns(uint8)'],signer);
+ assert.equal(await usd.decimals(),6n);
+ const quoter=new Contract(n.quoter,ABI.quoter,signer),input=10n**15n;
+ const now=async()=>Number((await provider.getBlock('latest')).timestamp);
+ stage='deposit ETH';console.log(stage);
+ await client.deposit(account.target,ZeroAddress,'0.001');assert.equal(await account.balances(owner,ZeroAddress),input);
+ await assert.rejects(()=>account.connect(other).withdraw.staticCall(ZeroAddress,1));
+ checks.push('Native deposit credits only the depositor; another wallet cannot withdraw it');
+ const browserQuote=await client.quote(account.target,ZeroAddress,n.usd,'0.001',100),best={fee:browserQuote.fee};
+ const quote=await quoter.quoteExactInputSingle.staticCall([n.weth,n.usd,input,best.fee,0]);
+ const minimum=browserQuote.minimum;
+ await assert.rejects(()=>account.swap.staticCall(ZeroAddress,n.usd,best.fee,input,quote[0]*100n,(now()).then(t=>t+120)));
+ assert.equal(await account.balances(owner,ZeroAddress),input);
+ stage='swap ETH to USDG';console.log(stage);
+ const swapReceipt=await client.swap(browserQuote);
+ const credited=await account.balances(owner,n.usd);assert.ok(credited>=minimum);assert.equal(await account.balances(owner,ZeroAddress),0n);
+ assert.equal(await usd.balanceOf(account.target),credited);
+ checks.push('Mainnet Uniswap router swaps deposited ETH to USDG; failed minimum output preserves the original balance');
+ stage='withdraw USDG';console.log(stage);
+ const half=credited/2n,before=await usd.balanceOf(owner);
+ await client.withdraw(account.target,n.usd,formatUnits(half,6));assert.equal(await usd.balanceOf(owner),before+half);
+ assert.equal(await account.balances(owner,n.usd),credited-half);
+ checks.push('USDG withdrawal pays the caller and debits exactly the credited amount');
+ stage='swap USDG to ETH';console.log(stage);
+ const remainder=credited-half,reverse=await quoter.quoteExactInputSingle.staticCall([n.usd,n.weth,remainder,best.fee,0]);
+ await client.swap(await client.quote(account.target,n.usd,ZeroAddress,formatUnits(remainder,6),100));
+ const native=await account.balances(owner,ZeroAddress);assert.ok(native>0n);
+ await client.withdraw(account.target,ZeroAddress,formatUnits(native,18));assert.equal(await account.balances(owner,ZeroAddress),0n);
+ checks.push('Reverse swap unwraps WETH and enables full native ETH withdrawal');
+ stage='deposit USDG and withdraw';console.log(stage);
+ await client.deposit(account.target,n.usd,formatUnits(half,6));
+ assert.equal(await account.balances(owner,n.usd),half);await client.withdraw(account.target,n.usd,formatUnits(half,6));
+ checks.push('Actual USDG approval, deposit and full withdrawal complete with no remaining account claim');
+ stage='deposit WETH, unwrap and withdraw';console.log(stage);
+ const wrapped=10n**13n;await(await weth.deposit({value:wrapped})).wait();await client.deposit(account.target,n.weth,formatUnits(wrapped,18));
+ await assert.rejects(()=>account.swap.staticCall(n.weth,ZeroAddress,0,wrapped,wrapped+1n,(now()).then(t=>t+120)));
+ await client.swap(await client.quote(account.target,n.weth,ZeroAddress,formatUnits(wrapped,18),100));
+ await client.withdraw(account.target,ZeroAddress,formatUnits(wrapped,18));
+ assert.equal(await account.balances(owner,n.weth),0n);assert.equal(await account.balances(owner,n.usd),0n);
+ assert.equal(await provider.getBalance(account.target),0n);assert.equal(await weth.balanceOf(account.target),0n);assert.equal(await usd.balanceOf(account.target),0n);
+ checks.push('WETH deposit, exact 1:1 unwrap and ETH withdrawal finish with all account balances and backing empty');
+ assert.equal(await new Contract(n.weth,['function allowance(address,address) view returns(uint256)'],signer).allowance(account.target,n.router),0n);
+ assert.equal(await new Contract(n.usd,['function allowance(address,address) view returns(uint256)'],signer).allowance(account.target,n.router),0n);
+ checks.push('Router token allowances are zero after swaps');
+ assert.ok(walletEvents.some(e=>e.label==='Approve exact deposit amount'&&e.status==='confirmed'));
+ assert.ok(walletEvents.filter(e=>e.status==='pending').every(p=>walletEvents.some(e=>e.hash===p.hash&&e.status==='confirmed')));
+ checks.push('The browser transaction controller performs deployment, exact approvals, deposits, quotes, swaps and withdrawals with simulation, gas estimation and confirmed receipts');
+ Object.assign(report,{passed:true,checks,swapGas:BigInt(swapReceipt.gasUsed).toString(),deploymentGas:BigInt(deployment.receipt.gasUsed).toString(),
+  amountInWei:input.toString(),usdReceivedBaseUnits:credited.toString(),usdDecimals:6,fee:best.fee});
+}catch(error){report.passed=false;report.failedStage=stage;report.failure=String(error?.info?.error?.message||error?.shortMessage||error?.message||'Fork failure').replace(/https?:\/\/[^\s"']+/g,'[RPC]').slice(0,350);}
+finally{writeFileSync(resolve(accountRoot,'artifacts/fork.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));await provider.destroy();await local.disconnect();}
+if(!report.passed)process.exitCode=1;

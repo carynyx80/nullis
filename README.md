@@ -1,39 +1,61 @@
-# NULLISPAD
+# Nullispad
 
-Update: case-sensitive username registration is now implemented with durable SQL storage and separate encrypted ownership keys. See REGISTRY-DEPLOYMENT.md for exact behavior and publishing status. The user accepted username guessing and operator metadata visibility. The local preview has a persistent registry; no hosted deployment has succeeded yet.
-
-Robinhood Chain application under development. The two pages are Swap and Profile; the latter contains assets, Send, Deposit, and Withdraw. Preserve the near-black purple design and supplied logo.
+Robinhood Chain public beta: Swap and Profile, with ETH/WETH/USDG balances,
+deposit and withdrawal. The user approved public transactions for the initial
+release. All financial activity is visible onchain. The new public account
+contract has not had an independent audit.
 
 ## Run
 
-Use Node 22 or newer. No dependency installation is required for this static application.
+Use Node 22+ (Node 24 for contract tooling):
 
 ```
+npm ci
 npm start
 npm test
 npm run check
+npm run build:vercel
 ```
 
-Open http://127.0.0.1:4318 in a browser with an injected EVM wallet, or use a compatible wallet's browser. Multiple browser wallets are discovered with EIP-6963. WalletConnect QR/mobile deep links are not configured.
+Open http://127.0.0.1:4318 in a browser with an injected EVM wallet or a wallet's
+dapp browser. WalletConnect QR is not configured. The sidebar browser has no wallet.
 
-## Current functionality
+## Account and transactions
 
-- Real browser-wallet permission flow and Robinhood Chain network switching.
-- Native ETH and ERC-20 reads. Canonical tokens plus optional explorer discovery and manual token contracts.
-- Optional profile picture, resized locally to a square PNG.
-- Encrypted local profiles using Web Crypto PBKDF2-SHA256 (600,000 iterations) and AES-256-GCM with independent random salt and IV.
-- Create, edit, lock, unlock, export encrypted backup, and restore a profile with its passphrase.
-- Profile locks on wallet changes, tab hiding and five minutes of inactivity.
-- Encrypted profiles persist in this browser origin's local storage. A backup and passphrase are both required to restore on another device/origin. There is currently one saved profile per browser origin; import a matching backup for another wallet. Backups capture the profile as of export, so re-export after changes.
+The browser can deploy the public account using the connected wallet, verify an
+existing account contract, read its wallet-indexed balances, deposit ETH or exact
+ERC20 amounts, quote and execute Uniswap v3 swaps, and withdraw to the connected
+wallet. Deployment and all transactions require wallet confirmation and gas.
+There is no server signing key. No mainnet deployment is claimed until its
+receipt and bytecode have been verified; without a default deployment, Deposit
+opens the deployment/connection flow.
 
-## Explicit limitations
+Only ETH, canonical WETH and canonical USDG are supported for settlement. USDG
+decimals are read onchain (currently 6). Quotes use supported direct Uniswap v3
+pools; ETH/WETH is 1:1 wrapping. There are no hidden fees or admin withdrawal/
+upgrade functions. Failed transactions revert account changes; gas can be spent.
+Slippage, token issuer restrictions, network conditions and new contract risk
+remain relevant. This public beta is not the future privacy protocol.
 
-Local encryption protects saved profile contents at rest; it is not a shielded account or a ZK protocol. No spending keys are created. Usernames are unregistered local labels and are not unique across devices. The profile owner address is inside encrypted data; the connected wallet address is public and visible in runtime memory. Optional token discovery sends that public address to Blockscout.
+See [account/README.md](account/README.md) for the architecture, tests, exact
+mainnet deployment guide, source-verification input and recovery. The fork tests
+exercise the browser transaction controller, actual mainnet contracts and the
+complete deposit/swap/withdraw flow, but do not submit live transactions.
 
-Decrypted data and the nonextractable encryption key are held in browser memory while unlocked. JavaScript cannot guarantee erasure of strings or protection from compromised devices, extensions, XSS, or maliciously changed application code. The hosted application supply chain requires review. NULLISPAD has no passphrase reset or server recovery key.
+## Profiles and recovery
 
-No real token approval, shield, transfer, unshield or swap is implemented. Financial controls remain disabled. No contract, prover, relayer, private username registry or liquidity adapter has been deployed. No independent cryptographic or contract audit has been obtained. Never present the application as ready for funds.
+Profiles support optional pictures and password-based local encryption using
+PBKDF2-SHA256 (600,000 iterations) and AES-256-GCM. Existing encrypted backups
+remain compatible with the rename. Export a backup after editing a profile;
+there is no server passphrase reset. Profiles lock on wallet changes, tab hiding
+and inactivity. Global username registration and Send remain disabled in the
+hosted release.
 
-See PROTOCOL.md for required invariants, sources, unresolved protocol questions and launch gates; IMPLEMENTATION.md for wallet details. Tests use synthetic wallets and fixture DOM, plus real Web Crypto encryption. No real wallet has been tested in the sidebar browser. No transfer or swap privacy has been demonstrated.
+A profile backup does not control public account funds. To recover balances on a
+new device, connect the original wallet and the same verified contract address.
+Onchain balances are independent of local profile data and transaction history.
+Do not share your wallet seed phrase or private key with Nullispad or an operator.
 
-An isolated private-username research prototype lives in `research/private-usernames/`. It has its own pinned dependencies, tests and HTTP demo. It is not connected to the UI; its attack tests demonstrate that the candidate does not meet the requested privacy guarantees. Never publish it as the production username registry.
+Static web assets are published to Vercel. RPC keys, research checkouts, private
+proof material, test state and local databases are excluded. The experimental
+shielded protocol in contracts/ and research/ remains separate from this release.
