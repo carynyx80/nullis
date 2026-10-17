@@ -38,6 +38,18 @@ The testnet report does not assert that a RAILGUN deployment exists, that the en
 
 ## Remaining work
 
+## Mainnet arithmetic probe
+
+Run `node --test probe-mainnet.test.mjs` and `node probe-mainnet.mjs`.
+This uses the documented public Robinhood mainnet endpoint by default, or a
+server-only `NULLIS_MAINNET_RPC` endpoint (including dRPC). It requires chain
+4663, pins arithmetic checks to one block, and checks the chain again afterward.
+No wallet, signed transaction or deployment is involved. Provider URLs are not
+printed. Results are written to ignored `mainnet-results.json`.
+Passing these checks does not establish a functioning privacy protocol.
+
+## Remaining integration work
+
 1. Select a deployable privacy construction with confirmed usage rights and reviewed contract/circuit versions. RAILGUN is a reference candidate, not selected for production: the inspected SDK configuration has no Robinhood entry, and the source permission question is unresolved.
 2. Obtain and verify circuit artifacts and trusted-setup provenance, generate a new proof and verify it.
 3. Integrate note commitments, nullifiers, Merkle membership, encrypted delivery and recoverable local balance scanning.

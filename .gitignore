@@ -4,6 +4,10 @@
 /research/railgun-upstream/
 /research/shielded-evm/local-results.json
 /research/shielded-evm/testnet-results.json
+/research/shielded-evm/mainnet-results.json
+/research/zeto-upstream/
+/research/zeto-prover/node_modules/
+/research/zeto-prover/artifacts/
 /node_modules/
 *.log
 /.local/
