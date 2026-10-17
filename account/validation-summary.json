@@ -58,7 +58,22 @@
   },
   "browserControllerTests": 18,
   "existingAppTests": 35,
-  "mainnetDeployment": null,
+  "mainnetDeployment": {
+    "checkedAt": "2026-10-17T08:09:43.475Z",
+    "chainId": 4663,
+    "address": "0x3b078b9Ce9a6f935667cfC95bb4536C3d8aa4417",
+    "transactionHash": "0x5d34e418d8876d7b9fbed0d33e090a2167e9c47c22928563ed91eaacde0d0325",
+    "deployer": "0xC3aa0fB10bB71F89f7eC923B2ef56ACBB99b6027",
+    "blockNumber": 90772102,
+    "blockHash": "0xa879e9c306b8bbc3c629d0d570b5146dbb9f93e3d741da8cc69abedf994ba6f6",
+    "sourceSha256": "70fcdf238c4e550a21a80ea782d56110b20162dfc1c3e9e553f267a57d05b1f1",
+    "compiler": "0.8.27+commit.40a35a09.Emscripten.clang",
+    "deploymentType": "deterministic-factory",
+    "runtimeHash": "0x3f07274a0e480cd53b7beb9b6a7f484fb1aeb832e6e8b6ed5918cb824d46f129",
+    "verified": true,
+    "private": false,
+    "independentlyAudited": false
+  },
   "independentlyAudited": false,
   "liveDeploymentSimulation": {
     "checkedAt": "2026-10-17T08:00:14.173Z",
@@ -70,5 +85,6 @@
     "simulationPassed": true,
     "estimatedGas": "1203006",
     "transactionsSent": 0
-  }
+  },
+  "liveAssetTransactionsVerified": false
 }
