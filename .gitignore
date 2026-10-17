@@ -8,6 +8,9 @@
 /research/zeto-upstream/
 /research/zeto-prover/node_modules/
 /research/zeto-prover/artifacts/
+/research/iden3-upstream/
+/contracts/node_modules/
+/contracts/artifacts/
 /node_modules/
 *.log
 /.local/
