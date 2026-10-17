@@ -17,7 +17,7 @@ function format(row,value){return state.hidden?'••••':E.formatUnits(valu
 function setAddress(address){F.address=address;try{localStorage.setItem(STORE,address)}catch{toast('Account connected for this session. Copy the contract address for recovery.')}}
 function draw(){
  $('.network').textContent='ROBINHOOD CHAIN / NULLISPAD';$('footer>span:last-child').textContent='Beta · onchain transactions';
- $('.portfolio-label').firstChild.textContent='ACCOUNT BALANCE ';$('.profile-note').textContent='Beta: balances, deposits, swaps and withdrawals are visible onchain. Only your wallet can spend its credited balance. The new account contract has not had an independent audit.';
+ $('.portfolio-label').firstChild.textContent='ACCOUNT BALANCE ';$('.profile-note').textContent='Only your wallet can spend its credited balance. The new account contract has not had an independent audit.';
  $('#total').replaceChildren(node('span',!state.address?'Connect your wallet':!onChain()?'Switch to Robinhood Chain':!F.address?'Account not deployed':F.loading?'Reading account…':F.error?'Balance unavailable':F.rows.filter(r=>r.balance>0n).length+' assets with a balance'));
  $('#assets').replaceChildren();
  if(F.error)$('#assets').append(node('p',F.error,'empty'));
